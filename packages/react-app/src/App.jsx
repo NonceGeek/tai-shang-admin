@@ -1,8 +1,15 @@
-import Portis from "@portis/web3";
 import WalletConnectProvider from "@walletconnect/web3-provider";
+//import Torus from "@toruslabs/torus-embed"
+import WalletLink from "walletlink";
 import { Alert, Button, Col, Menu, Row } from "antd";
 import "antd/dist/antd.css";
-import Authereum from "authereum";
+import React, { useCallback, useEffect, useState } from "react";
+import { BrowserRouter, Link, Route, Switch } from "react-router-dom";
+import Web3Modal from "web3modal";
+import "./App.css";
+import { Account, Contract, Faucet, GasGauge, Header, Ramp, ThemeSwitch } from "./components";
+import { INFURA_ID, NETWORK, NETWORKS } from "./constants";
+import { Transactor } from "./helpers";
 import {
   useBalance,
   useContractLoader,
@@ -11,22 +18,17 @@ import {
   useOnBlock,
   useUserProviderAndSigner,
 } from "eth-hooks";
+import { useEventListener } from "eth-hooks/events/useEventListener";
 import { useExchangeEthPrice } from "eth-hooks/dapps/dex";
-import Fortmatic from "fortmatic";
-import React, { useCallback, useEffect, useState } from "react";
-import { BrowserRouter, Link, Route, Switch } from "react-router-dom";
-//import Torus from "@toruslabs/torus-embed"
-import WalletLink from "walletlink";
-import Web3Modal from "web3modal";
-import "./App.css";
-import { Account, Contract, Faucet, GasGauge, Header, Ramp, ThemeSwitch } from "./components";
-import { INFURA_ID, NETWORK, NETWORKS } from "./constants";
-import externalContracts from "./contracts/external_contracts";
-// contracts
-import deployedContracts from "./contracts/hardhat_contracts.json";
-import { Transactor } from "./helpers";
 // import Hints from "./Hints";
 import { ExampleUI, Hints, Subgraph } from "./views";
+
+import { useContractConfig } from "./hooks";
+import Portis from "@portis/web3";
+import Fortmatic from "fortmatic";
+import Authereum from "authereum";
+import nProgress from "nprogress";
+import "nprogress/nprogress.css"
 
 const { ethers } = require("ethers");
 /*
@@ -220,9 +222,7 @@ function App(props) {
   // Just plug in different 🛰 providers to get your balance on different chains:
   const yourMainnetBalance = useBalance(mainnetProvider, address);
 
-  // const contractConfig = useContractConfig();
-
-  const contractConfig = { deployedContracts: deployedContracts || {}, externalContracts: externalContracts || {} };
+  const contractConfig = useContractConfig();
 
   // Load in your local 📝 contract and read a value from it:
   const readContracts = useContractLoader(localProvider, contractConfig);
@@ -246,7 +246,10 @@ function App(props) {
   ]);
 
   // keep track of a variable from the contract in the local React state:
-  const purpose = useContractReader(readContracts, "YourContract", "purpose");
+  const purpose = useContractReader(readContracts, "PurposeHandler", "purpose");
+
+  // 📟 Listen for broadcast events
+  const setPurposeEvents = useEventListener(readContracts, "PurposeHandler", "SetPurpose", localProvider, 1);
 
   /*
   const addressFromENS = useResolveName(mainnetProvider, "austingriffith.eth");
@@ -437,7 +440,7 @@ function App(props) {
       </div>
     );
   }
-
+  nProgress.done()
   return (
     <div className="App">
       {/* ✏️ Edit the header and change the title to your project name */}
@@ -445,14 +448,14 @@ function App(props) {
       {networkDisplay}
       <BrowserRouter>
         <Menu style={{ textAlign: "center" }} selectedKeys={[route]} mode="horizontal">
-          <Menu.Item key="/">
+          <Menu.Item key="/set-purpose">
             <Link
               onClick={() => {
                 setRoute("/");
               }}
               to="/"
             >
-              YourContract
+              PurposeHandler
             </Link>
           </Menu.Item>
           <Menu.Item key="/hints">
@@ -506,8 +509,7 @@ function App(props) {
             */}
 
             <Contract
-              name="YourContract"
-              price={price}
+              name="PurposeHandler"
               signer={userSigner}
               provider={localProvider}
               address={address}
@@ -535,6 +537,7 @@ function App(props) {
               writeContracts={writeContracts}
               readContracts={readContracts}
               purpose={purpose}
+              setPurposeEvents={setPurposeEvents}
             />
           </Route>
           <Route path="/mainnetdai">
