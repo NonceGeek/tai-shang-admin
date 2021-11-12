@@ -9,6 +9,8 @@
 
 # 🏄‍♂️ Quick Start
 
+### Manual setup
+
 Prerequisites: [Node](https://nodejs.org/en/download/) plus [Yarn](https://classic.yarnpkg.com/en/docs/install/) and [Git](https://git-scm.com/downloads)
 
 > clone/fork 🏗 scaffold-eth:
@@ -39,13 +41,19 @@ cd scaffold-eth
 yarn deploy
 ```
 
-🔏 Edit your smart contract `YourContract.sol` in `packages/hardhat/contracts`
+🔏 Edit your smart contract `Whitelist.sol` in `packages/hardhat/contracts`
 
 📝 Edit your frontend `App.jsx` in `packages/react-app/src`
 
 💼 Edit your deployment scripts in `packages/hardhat/deploy`
 
 📱 Open http://localhost:3000 to see the app
+
+### Automated with Gitpod
+
+To deploy this project to Gitpod, click this button:
+
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#github.com/scaffold-eth/scaffold-eth)
 
 # 📚 Documentation
 
@@ -55,7 +63,7 @@ Documentation, tutorials, challenges, and many more resources, visit: [docs.scaf
 
 📕 Read the docs: https://docs.soliditylang.org
 
-📚 Go through each topic from [solidity by example](https://solidity-by-example.org) editing `YourContract.sol` in **🏗 scaffold-eth**
+📚 Go through each topic from [solidity by example](https://solidity-by-example.org) editing `Whitelist.sol` in **🏗 scaffold-eth**
 
 - [Primitive Data Types](https://solidity-by-example.org/primitives/)
 - [Mappings](https://solidity-by-example.org/mapping/)

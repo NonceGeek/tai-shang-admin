@@ -1,15 +1,8 @@
+import Portis from "@portis/web3";
 import WalletConnectProvider from "@walletconnect/web3-provider";
-//import Torus from "@toruslabs/torus-embed"
-import WalletLink from "walletlink";
 import { Alert, Button, Col, Menu, Row } from "antd";
 import "antd/dist/antd.css";
-import React, { useCallback, useEffect, useState } from "react";
-import { BrowserRouter, Link, Route, Switch } from "react-router-dom";
-import Web3Modal from "web3modal";
-import "./App.css";
-import { Account, Contract, Faucet, GasGauge, Header, Ramp, ThemeSwitch } from "./components";
-import { INFURA_ID, NETWORK, NETWORKS } from "./constants";
-import { Transactor } from "./helpers";
+import Authereum from "authereum";
 import {
   useBalance,
   useContractLoader,
@@ -18,17 +11,22 @@ import {
   useOnBlock,
   useUserProviderAndSigner,
 } from "eth-hooks";
-import { useEventListener } from "eth-hooks/events/useEventListener";
 import { useExchangeEthPrice } from "eth-hooks/dapps/dex";
+import Fortmatic from "fortmatic";
+import React, { useCallback, useEffect, useState } from "react";
+import { BrowserRouter, Link, Route, Switch } from "react-router-dom";
+//import Torus from "@toruslabs/torus-embed"
+import WalletLink from "walletlink";
+import Web3Modal from "web3modal";
+import "./App.css";
+import { Account, Contract, Faucet, GasGauge, Header, Ramp, ThemeSwitch } from "./components";
+import { INFURA_ID, NETWORK, NETWORKS, ALCHEMY_KEY } from "./constants";
+import externalContracts from "./contracts/external_contracts";
+// contracts
+import deployedContracts from "./contracts/hardhat_contracts.json";
+import { Transactor } from "./helpers";
 // import Hints from "./Hints";
 import { ExampleUI, Hints, Subgraph } from "./views";
-
-import { useContractConfig } from "./hooks";
-import Portis from "@portis/web3";
-import Fortmatic from "fortmatic";
-import Authereum from "authereum";
-import nProgress from "nprogress";
-import "nprogress/nprogress.css"
 
 const { ethers } = require("ethers");
 /*
@@ -51,7 +49,7 @@ const { ethers } = require("ethers");
 */
 
 /// 📡 What chain are your contracts deployed to?
-const targetNetwork = NETWORKS.localhost; // <------- select your target frontend network (localhost, rinkeby, xdai, mainnet)
+const targetNetwork = NETWORKS.ropsten; // <------- select your target frontend network (localhost, rinkeby, xdai, mainnet)
 
 // 😬 Sorry for all the console logging
 const DEBUG = true;
@@ -69,11 +67,11 @@ const scaffoldEthProvider = navigator.onLine
   : null;
 const poktMainnetProvider = navigator.onLine
   ? new ethers.providers.StaticJsonRpcProvider(
-      "https://eth-mainnet.gateway.pokt.network/v1/lb/611156b4a585a20035148406",
+      "https://eth-mainnet.gateway.pokt.network/v1/lb/61853c567335c80036054a2b",
     )
   : null;
 const mainnetInfura = navigator.onLine
-  ? new ethers.providers.StaticJsonRpcProvider("https://mainnet.infura.io/v3/" + INFURA_ID)
+  ? new ethers.providers.StaticJsonRpcProvider(`https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_KEY}`)
   : null;
 // ( ⚠️ Getting "failed to meet quorum" errors? Check your INFURA_ID
 // 🏠 Your local provider is usually pointed at your local blockchain
@@ -92,7 +90,7 @@ const walletLink = new WalletLink({
 });
 
 // WalletLink provider
-const walletLinkProvider = walletLink.makeWeb3Provider(`https://mainnet.infura.io/v3/${INFURA_ID}`, 1);
+const walletLinkProvider = walletLink.makeWeb3Provider(`https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_KEY}`, 1);
 
 // Portis ID: 6255fb2b-58c8-433b-a2c9-62098c05ddc9
 /*
@@ -109,7 +107,7 @@ const web3Modal = new Web3Modal({
         bridge: "https://polygon.bridge.walletconnect.org",
         infuraId: INFURA_ID,
         rpc: {
-          1: `https://mainnet.infura.io/v3/${INFURA_ID}`, // mainnet // For more WalletConnect providers: https://docs.walletconnect.org/quick-start/dapps/web3-provider#required
+          1: `https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_KEY}`, // mainnet // For more WalletConnect providers: https://docs.walletconnect.org/quick-start/dapps/web3-provider#required
           42: `https://kovan.infura.io/v3/${INFURA_ID}`,
           100: "https://dai.poa.network", // xDai
         },
@@ -222,7 +220,9 @@ function App(props) {
   // Just plug in different 🛰 providers to get your balance on different chains:
   const yourMainnetBalance = useBalance(mainnetProvider, address);
 
-  const contractConfig = useContractConfig();
+  // const contractConfig = useContractConfig();
+
+  const contractConfig = { deployedContracts: deployedContracts || {}, externalContracts: externalContracts || {} };
 
   // Load in your local 📝 contract and read a value from it:
   const readContracts = useContractLoader(localProvider, contractConfig);
@@ -246,10 +246,7 @@ function App(props) {
   ]);
 
   // keep track of a variable from the contract in the local React state:
-  const purpose = useContractReader(readContracts, "PurposeHandler", "purpose");
-
-  // 📟 Listen for broadcast events
-  const setPurposeEvents = useEventListener(readContracts, "PurposeHandler", "SetPurpose", localProvider, 1);
+  const purpose = useContractReader(readContracts, "Whitelist", "purpose");
 
   /*
   const addressFromENS = useResolveName(mainnetProvider, "austingriffith.eth");
@@ -440,7 +437,7 @@ function App(props) {
       </div>
     );
   }
-  nProgress.done()
+
   return (
     <div className="App">
       {/* ✏️ Edit the header and change the title to your project name */}
@@ -448,14 +445,14 @@ function App(props) {
       {networkDisplay}
       <BrowserRouter>
         <Menu style={{ textAlign: "center" }} selectedKeys={[route]} mode="horizontal">
-          <Menu.Item key="/set-purpose">
+          <Menu.Item key="/">
             <Link
               onClick={() => {
                 setRoute("/");
               }}
               to="/"
             >
-              PurposeHandler
+              Whitelist
             </Link>
           </Menu.Item>
           <Menu.Item key="/hints">
@@ -509,7 +506,8 @@ function App(props) {
             */}
 
             <Contract
-              name="PurposeHandler"
+              name="Whitelist"
+              price={price}
               signer={userSigner}
               provider={localProvider}
               address={address}
@@ -537,7 +535,6 @@ function App(props) {
               writeContracts={writeContracts}
               readContracts={readContracts}
               purpose={purpose}
-              setPurposeEvents={setPurposeEvents}
             />
           </Route>
           <Route path="/mainnetdai">
